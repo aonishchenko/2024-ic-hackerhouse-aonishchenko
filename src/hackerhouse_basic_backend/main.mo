@@ -5,6 +5,7 @@ import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Text "mo:base/Text";
 import Cycles "mo:base/ExperimentalCycles";
+import Debug "mo:base/Debug";
 
 actor {
     public query ({ caller }) func getUserProfile() : async Result.Result<{ id : Nat; name : Text }, Text> {
@@ -12,6 +13,8 @@ actor {
     };
 
     public shared ({ caller }) func setUserProfile(name : Text) : async Result.Result<{ id : Nat; name : Text }, Text> {
+        Debug.print("Principal: " # debug_show caller);
+        
         return #ok({ id = 123; name = "test" });
     };
 
