@@ -5,6 +5,9 @@ function App() {
   const [backendActor, setBackendActor] = useState();
   const [userId, setUserId] = useState();
   const [userName, setUserName] = useState();
+  const [sentimentResult, setSentimentResult] = useState(null);
+
+
 
   function handleSubmitUserProfile(event) {
     event.preventDefault();
@@ -20,6 +23,24 @@ function App() {
         setUserId("Unexpected error, check the console");
       }
     });
+    return false;
+  }
+
+  function handleOutcall_ai_model_for_sentiment_analysis(event) {
+    event.preventDefault();
+    const text4analysis = event.target.elements.text4analysis.value;
+    backendActor
+      .outcall_ai_model_for_sentiment_analysis(text4analysis)
+      .then((response) => {
+        if (response.ok) {
+          setSentimentResult(response.ok.result);
+        } else if (response.err) {
+          setSentimentResult(response.err);
+        } else {
+          console.error(response);
+          setSentimentResult("Unexpected error, check the console");
+        }
+      });
     return false;
   }
 
@@ -43,6 +64,23 @@ function App() {
           </form>
           {userId && <section className="response">{userId}</section>}
           {userName && <section className="response">{userName}</section>}
+        </>
+      )}
+      {backendActor && (
+        <>
+          <form
+            action="#"
+            onSubmit={handleOutcall_ai_model_for_sentiment_analysis}
+          >
+            <label htmlFor="name">
+              Enter your text for sentiment analysis: &nbsp;
+            </label>
+            <input id="text4analysis" alt="Text4Analysis" type="text" />
+            <button type="submit">Get Result</button>
+          </form>
+          <section id="sentiment_analysis">
+            {sentimentResult && <div>{JSON.stringify(sentimentResult)}</div>}
+          </section>
         </>
       )}
     </main>

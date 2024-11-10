@@ -10,7 +10,9 @@ import Principal "mo:base/Principal";
 import Map "mo:map/Map";
 import { phash; nhash } "mo:map/Map";
 import Nat "mo:base/Nat";
-import Vector "mo:vector"
+import Vector "mo:vector";
+import { JSON } "mo:serde";
+import Float "mo:base/Float";
 
 actor {
     stable var autoIndex = 0;
@@ -38,7 +40,6 @@ actor {
     public shared ({ caller }) func setUserProfile(name : Text) : async Result.Result<{ id : Nat; name : Text }, Text> {
         //check if user already exists
         switch (Map.get(userIdMap, phash, caller)) {
-//            case (?idFound) return #err("User already has id: " # Nat.toText(idFound));
             case (?_x) {};
             case (_) {
                 //set user id
@@ -47,8 +48,6 @@ actor {
                 autoIndex += 1;
             };
         };
-
-//        Debug.print(debug_show (userIdMap));
 
         //set profile name
         let foundId = switch (Map.get(userIdMap, phash, caller)) {
@@ -111,11 +110,28 @@ actor {
 
         // TODO
         // Install "serde" package and parse JSON
+        let blob = switch (JSON.fromText(text_response, null)) {
+            case (#ok(b)) { b };
+            case (_) { return #err("Error decoding JSON: " # text_response) };
+        };
+        let results : ?[[{ label_ : Text; score : Float }]] = from_candid (blob);
+        let parsed_results = switch (results) {
+            case (null) { return #err("Error parsing JSON: " # text_response) };
+            case (?x) { x[0] };
+        };
         // calculate highest sentiment and return it as a result
+        var best_result = "";
+        var best_score : Float = 0;
+        for (resultRec in parsed_results.vals()){
+            if (resultRec.score > best_score) {
+                best_result := resultRec.label_;
+                best_score := resultRec.score;
+            };
+        };
 
         return #ok({
             paragraph = paragraph;
-            result = text_response;
+            result = best_result # " (confidence: " # Float.toText(best_score) # ")";
         });
     };
 
@@ -180,7 +196,7 @@ actor {
         let http_request : Types.HttpRequestArgs = {
             url = url;
             max_response_bytes = null; //optional for request
-            headers = request_headers;
+            headers = merged_headers;
             // note: type of `body` is ?[Nat8] so it is passed here as "?request_body_as_nat8" instead of "request_body_as_nat8"
             body = ?request_body_as_nat8;
             method = #post;
